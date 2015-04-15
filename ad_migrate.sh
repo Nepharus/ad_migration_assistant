@@ -42,27 +42,37 @@ sleep 4
 echo "Done"
 
 # Check if AD servers are available
-if ping -c 2 -q ad1.alpine.local &> /dev/null
+#if ping -c 2 -q ad1.alpine.local &> /dev/null
+#then
+#	echo "There 1"
+#	exit;
+#else
+#	if ping -c 2 -q ad2.alpine.local &> /dev/null
+#	then
+#		echo "There 2"
+#		exit;
+#	else
+#		if ping -c 2 -q ad3.alpine.local &> /dev/null
+#		then
+#			echo "There 3"
+#			exit;
+#		else
+#			echo "Not there"
+#			exit;
+#		fi
+#	fi
+#fi
+#exit
+
+cond1=$(ping -c 2 -q ad1.alpine.local &> /dev/null)
+cond2=$(ping -c 2 -q ad2.alpine.local &> /dev/null)
+
+if [ $cond1 ] || [ $cond2 ]
 then
-	echo "There 1"
-	exit;
+	echo "Both accessible"
 else
-	if ping -c 2 -q ad2.alpine.local &> /dev/null
-	then
-		echo "There 2"
-		exit;
-	else
-		if ping -c 2 -q ad3.alpine.local &> /dev/null
-		then
-			echo "There 3"
-			exit;
-		else
-			echo "Not there"
-			exit;
-		fi
-	fi
+	echo "One of them isn't accessible"
 fi
-exit
 
 
 # Check if the machine is bound to AD
