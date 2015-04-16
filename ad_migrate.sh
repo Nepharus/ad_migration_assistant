@@ -10,7 +10,7 @@
 
 clear
 
-echo "AD migration assistant v1.4"
+echo "AD migration assistant v1.5"
 echo
 echo "This script was designed to assist in migrating a non-AD user"
 echo "to AD while keeping their Desktop background, files, and most"
@@ -38,41 +38,8 @@ clear
 # Turn off wireless
 echo "Turning off wireless. Please enter in your administrative password"
 sudo networksetup -setairportpower en1 off
-sleep 4
+sleep 3
 echo "Done"
-
-# Check if AD servers are available
-#if ping -c 2 -q ad1.alpine.local &> /dev/null
-#then
-#	echo "There 1"
-#	exit;
-#else
-#	if ping -c 2 -q ad2.alpine.local &> /dev/null
-#	then
-#		echo "There 2"
-#		exit;
-#	else
-#		if ping -c 2 -q ad3.alpine.local &> /dev/null
-#		then
-#			echo "There 3"
-#			exit;
-#		else
-#			echo "Not there"
-#			exit;
-#		fi
-#	fi
-#fi
-#exit
-
-cond1=$(ping -c 2 -q ad1.alpine.local &> /dev/null)
-cond2=$(ping -c 2 -q ad2.alpine.local &> /dev/null)
-
-if [ $cond1 ] || [ $cond2 ]
-then
-	echo "Both accessible"
-else
-	echo "One of them isn't accessible"
-fi
 
 
 # Check if the machine is bound to AD
@@ -88,10 +55,37 @@ else
     exit
 fi
 
+# Check that one of three DC's are reachable
+# Specific the DNS (Or IP's) to try
+IPs=( "ad1.alpine.local" "ad2.alpine.local" "ad3.alpine.local" )
+# Value to return false
+found_one=1
+
+# Function for checking for servers
+check_servers(){
+for ip in ${IPs[*]};
+do
+# If ping returns true, change found_one to true
+	if ping -c 2 -q $ip;
+	then
+		found_one=0
+	fi
+done 
+return $found_one}
+
+# Check the function is not true
+if ! check_servers;
+then
+	echo "None of the DC's are available. Wire the machine on a school network."
+	sudo networksetup -setairportpower en1 on
+	exit
+fi
+
+# Find out who's running the script
 i_am=$(whoami)
 
 # Create an array from the list of users in dscl- excluding users
-# with "_", daemon, nobody, and root
+# with "_", daemon, nobody, and root and $i_am
 user_list=($(dscl . -list /Users | grep -v -e "\_" -e daemon -e nobody -e root -e $i_am))
 
 # Tech selection of users
@@ -100,12 +94,15 @@ do
 	test -n "$old_user" && break;
 	echo ">>> Invalid Selection. Type the number associated with your user."
 done
+# Show who the old_user is as selected
 #echo $old_user
 
 # List selected user's Home Directory and store as old_user_hd
 old_user_hd="$(sudo dscl . -read /Users/$old_user | awk '/NFSHomeDirectory/ {print $2}')"
+# Show what the Home Directory is from awk above
 #echo "$old_user_hd"
 
+# For Home Directories that have spaces, dscl puts these on the second line
 # Check if the value pulled from dscl is null or not
 if [ -z "$old_user_hd" ];
 then
@@ -113,9 +110,11 @@ then
 	old_user_hd="$(sudo dscl . -read /Users/$old_user | grep -e "/Users/$old_user_hd")"
 # Now, trim the excess leading space
 	old_user_hd="$(echo "$old_user_hd" | sed -e 's/^[[:space:]]*//')"
-#	echo "$old_user_hd"
+# Show the 'massaged' data
+#echo "$old_user_hd"
 fi
 
+# Put in the current active directory shortname
 echo "Now please enter in the AD username of that user: "
 read new_user
 
