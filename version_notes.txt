@@ -1,0 +1,6 @@
+Version 1.5
+
+Including a domain controller checker. If none of the DC's are available, then exit.
+Clean up comments on a lot of the code.
+
+

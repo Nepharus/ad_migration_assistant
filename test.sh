@@ -1,13 +1,23 @@
 #!/bin/bash
 
-# Set ownership of the entire folder to the new user
+# Check that chown will work first
+# Specify test user
+new_user=monkey
 
-# If fails, we want to stop the script here.
-echo "Setting ownership of their home folder"
+# Function for the check
+chown_check(){
+# Run command
+echo "Attempting to set ownership of their home folder"
 echo "This may take a little while- $(tput setaf 2)Please, be patient$(tput sgr0)"
-sudo chown -R $new_user:staff /Users/$new_user
-sleep 2
-echo "Done"
+sudo chown -R $new_user:staff /Users/$new_user &>/dev/null
+# $? is the value of true or false of last command
+chown_is=$?
+ls -al /Users/
+return $chown_is
+}
 
-chown_is=1
-check_chown(){
+if ! chown_check;
+then
+	echo "We can't chown"
+	exit
+fi

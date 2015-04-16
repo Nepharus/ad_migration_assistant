@@ -71,7 +71,8 @@ do
 		found_one=0
 	fi
 done 
-return $found_one}
+return $found_one
+}
 
 # Check the function is not true
 if ! check_servers;
@@ -130,21 +131,35 @@ sudo mv "$old_user_hd" /Users/$new_user
 sleep 2
 echo "Done"
 
-# Set ownership of the entire folder to the new user
-echo "Setting ownership of their home folder"
+# Function for the chown check
+chown_check(){
+# Run command
+echo "Attempting to set ownership of their home folder"
 echo "This may take a little while- $(tput setaf 2)Please, be patient$(tput sgr0)"
-sudo chown -R $new_user:staff /Users/$new_user
-sleep 2
-echo "Done"
+sudo chown -R $new_user:staff /Users/$new_user &>/dev/null
+# $? is the value of true or false of last command
+chown_is=$?
+return $chown_is
+}
 
-# Remove Keychain items
+# Run the function test. If return is NOT 0, do this
+if ! chown_check;
+then
+	echo "Can not set ownership of user's folder."
+	echo "Either user was typed incorrectly, or connection to DC lost."
+	echo "Please check both and rerrun the program."
+	echo "Exiting"
+	exit
+fi
+
+# Remove Keychain items - doesn't hurt if nothing is there
 echo "Removing Keychain items"
 sudo rm -rf /Users/$new_user/Library/Keychains/*
 sudo rm -rf /Users/$new_user/Library/Keychains/.fl*
 sleep 2
 echo "Done"
 
-# Remove dropbox file
+# Remove dropbox file - doesn't hurt if nothing is there
 echo "Removing Dropbox associated file"
 sudo rm -rf /Users/$new_user/.dropbox
 sleep 2
