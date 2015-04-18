@@ -28,7 +28,7 @@ echo
 echo
 echo "$(tput setaf 2)Exit this script at any time by hitting $(tput setaf 5)CTRL+C$(tput sgr0)"
 echo
-echo "Created by courtesy of Team 'FARK"
+echo "Created by James Nielsen
 
 # Pause to continue
 read -n 1 -p "$(tput setaf 4)Press any key to continue...$(tput sgr0)"
@@ -119,12 +119,6 @@ fi
 echo "Now please enter in the AD username of that user: "
 read new_user
 
-# Remove the user using dscl
-echo "Removing old user from local directory"
-sudo dscl . -delete /Users/${old_user%/}
-sleep 2
-echo "Done"
-
 # Rename the old username to the new AD username
 echo "Rename their home folder to match the AD username"
 sudo mv "$old_user_hd" /Users/$new_user
@@ -134,7 +128,7 @@ echo "Done"
 # Function for the chown check
 chown_check(){
 # Run command
-echo "Attempting to set ownership of their home folder"
+echo "Attempting to set ownership of their new home folder"
 echo "This may take a little while- $(tput setaf 2)Please, be patient$(tput sgr0)"
 sudo chown -R $new_user:staff /Users/$new_user &>/dev/null
 # $? is the value of true or false of last command
@@ -148,9 +142,18 @@ then
 	echo "Can not set ownership of user's folder."
 	echo "Either user was typed incorrectly, or connection to DC lost."
 	echo "Please check both and rerrun the program."
+	# Turn wireless back on
+	sudo networksetup -setairportpower en1 on
 	echo "Exiting"
 	exit
 fi
+
+# Remove the user using dscl
+# This doesn't need a check because it's pulling from dscl, so it shouldn't fail
+echo "Removing old user from local directory"
+sudo dscl . -delete /Users/${old_user%/}
+sleep 2
+echo "Done"
 
 # Remove Keychain items - doesn't hurt if nothing is there
 echo "Removing Keychain items"
