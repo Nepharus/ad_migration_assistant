@@ -1,9 +1,0 @@
-Version 1.5
-
-Including a domain controller checker. If none of the DC's are available, then exit.
-Clean up comments on a lot of the code.
-
-Incude a chown checker
-Move user deletion with dscl after the chown check
-Created by James Nielsen, instead of Team 'Fark
-
