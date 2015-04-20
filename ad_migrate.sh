@@ -28,7 +28,7 @@ echo
 echo
 echo "$(tput setaf 2)Exit this script at any time by hitting $(tput setaf 5)CTRL+C$(tput sgr0)"
 echo
-echo "Created by James Nielsen
+echo "Created by James Nielsen"
 
 # Pause to continue
 read -n 1 -p "$(tput setaf 4)Press any key to continue...$(tput sgr0)"
@@ -142,6 +142,11 @@ then
 	echo "Can not set ownership of user's folder."
 	echo "Either user was typed incorrectly, or connection to DC lost."
 	echo "Please check both and rerrun the program."
+	# Re-rename old_user_hd back to original
+	echo "Moving user's home directory back"
+	echo "Re-setting permissions for this folder back"
+	sudo mv /Users/$new_user "$old_user_hd"
+	sudo chown -R $old_user:staff "$old_user_hd"
 	# Turn wireless back on
 	sudo networksetup -setairportpower en1 on
 	echo "Exiting"
