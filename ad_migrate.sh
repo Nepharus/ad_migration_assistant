@@ -130,7 +130,7 @@ chown_check(){
 # Run command
 echo "Attempting to set ownership of their new home folder"
 echo "This may take a little while- $(tput setaf 2)Please, be patient$(tput sgr0)"
-sudo chown -R $new_user:staff /Users/$new_user &>/dev/null
+sudo chown -R "$new_user":staff /Users/$new_user &>/dev/null
 # $? is the value of true or false of last command
 chown_is=$?
 return $chown_is
@@ -145,7 +145,7 @@ then
 	# Re-rename old_user_hd back to original
 	echo "Moving user's home directory back"
 	echo "Re-setting permissions for this folder back"
-	sudo mv /Users/$new_user "$old_user_hd"
+	sudo mv /Users/"$new_user" "$old_user_hd"
 	sudo chown -R $old_user:staff "$old_user_hd"
 	# Turn wireless back on
 	sudo networksetup -setairportpower en1 on
