@@ -147,7 +147,7 @@ then
 	echo "Re-setting permissions for this folder back"
 	sudo mv /Users/"$new_user" "$old_user_hd"
 	sudo chown -R $old_user:staff "$old_user_hd"
-	sudo chflags -R nouchg
+	sudo chflags -R nouchg "$old_user_hd"
 	# Turn wireless back on
 	sudo networksetup -setairportpower en1 on
 	echo "Exiting"
