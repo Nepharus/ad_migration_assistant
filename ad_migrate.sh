@@ -190,4 +190,4 @@ sudo networksetup -setairportpower en1 on
 # Finished
 echo "User migrated!"
 
-#rm -rf /Users/Shared/ad_migrate.*
+rm -rf /Users/Shared/ad_migrate.*
