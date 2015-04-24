@@ -89,6 +89,9 @@ i_am=$(whoami)
 # with "_", daemon, nobody, and root and $i_am
 user_list=($(dscl . -list /Users | grep -v -e "\_" -e daemon -e nobody -e root -e $i_am))
 
+echo "Please select the old user account by typing the number next to their name:"
+echo ""
+
 # Tech selection of users
 select old_user in "${user_list[@]}"
 do
