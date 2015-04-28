@@ -10,7 +10,7 @@
 
 clear
 
-echo "AD migration assistant v1.5"
+echo "AD migration assistant v1.5.3"
 echo
 echo "This script was designed to assist in migrating a non-AD user"
 echo "to AD while keeping their Desktop background, files, and most"
@@ -52,6 +52,7 @@ then
 else
     echo "You are $(tput setaf 1)NOT$(tput sgr0) bound to $(tput setaf 2)alpine.local$(tput sgr0)"
     echo "Please bind the machine before running this script."
+    sudo networksetup setairportpower en1 on
     exit
 fi
 
