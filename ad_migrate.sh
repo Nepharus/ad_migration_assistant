@@ -8,9 +8,16 @@
 
 #!/bin/bash
 
+# Color variables
+GREEN=$(tput setaf 2)
+RED=$(tput setaf 1)
+RESET=$(tput sgr0)
+PINK=$(tput setaf 5)
+BLUE=$(tput setaf 4)
+
 clear
 
-echo "AD migration assistant v1.5.3"
+echo "AD migration assistant v1.5.4"
 echo
 echo "This script was designed to assist in migrating a non-AD user"
 echo "to AD while keeping their Desktop background, files, and most"
@@ -18,22 +25,44 @@ echo "of their preferences."
 echo
 
 # Change text color to red
-echo "$(tput setaf 1)Warning: Do not run this script while the user you're migrating"
+echo $RED"Warning: Do not run this script while the user you're migrating"
 echo "is still logged in. Log them out first and run this script as"
-echo "an administrator on their machine.$(tput sgr0)"
+echo "an administrator on their machine."$RESET
 echo
 echo
 echo "Make sure the machine has a wired connection on the school networks"
 echo
 echo
-echo "$(tput setaf 2)Exit this script at any time by hitting $(tput setaf 5)CTRL+C$(tput sgr0)"
+echo $GREEN"Exit this script at any time by hitting"$PINK "CTRL+C"$RESET
 echo
 echo "Created by James Nielsen, James Lewis, and Bryson Grygla"
 
 # Pause to continue
-read -n 1 -p "$(tput setaf 4)Press any key to continue...$(tput sgr0)"
+read -n 1 -p $BLUE"Press any key to continue..."$RESET
 
 clear
+
+# Check that all names match
+name1=$(scutil --get HostName)
+name2=$(scutil --get ComputerName)
+name3=$(scutil --get LocalHostName)
+echo "Checking that HostName, ComputerName, and LocalHostName all match"
+if [[ "$name1" == "$name2" && "$name1" == "$name3" ]]
+then
+	echo "Everything is as it should be! :-)"
+	echo "HostName is: "$GREEN$name1$RESET
+	echo "ComputerName is: "$GREEN$name2$RESET
+	echo "LocalHostName is: "$GREEN$name3$RESET
+	sleep 2
+else
+	echo "One of the HostNames does not match. Please verify that all names match"
+	echo "and un-bind and re-bind to Active Directory if necessary"
+	echo "HostName is: "$RED$name1$RESET
+	echo "ComputerName is: "$RED$name2$RESET
+	echo "LocalHostName is: "$RED$name3$RESET
+	sleep 5
+	exit
+fi
 
 # Turn off wireless
 echo "Turning off wireless. Please enter in your administrative password"
@@ -48,9 +77,9 @@ echo "Checking what domain the machine is bound to for Active Directory"
 ADTEST=$(dsconfigad -show | awk '/Active Directory Domain/ {print $5}')
 if [ $ADTEST = "alpine.local" ]
 then
-    echo "You are bound to $(tput setaf 2)alpine.local$(tput sgr0). Moving on."
+    echo "You are bound to "$GREEN"alpine.local"$RESET". Moving on."
 else
-    echo "You are $(tput setaf 1)NOT$(tput sgr0) bound to $(tput setaf 2)alpine.local$(tput sgr0)"
+    echo "You are "$RED"NOT"$RESET" bound to "$GREEN"alpine.local"$RESET
     echo "Please bind the machine before running this script."
     sudo networksetup setairportpower en1 on
     exit
@@ -124,8 +153,27 @@ fi
 echo "Now please enter in the AD username of that user: "
 read new_user
 
+# Check if old_user is the same as the new_user
+if [[ "$old_user" = "$new_user" ]];
+then
+	echo
+	echo
+	echo $RED$old_user$RESET" is the same as the AD username you are migrating already."
+	echo "This app is not needed."
+	# Pause to continue
+	read -n 1 -p $BLUE"Press any key to continue..."$RESET
+	# Turn wireless back on
+	echo "Turning wireless back on"
+	sudo networksetup -setairportpower en1 on
+	echo "Exiting"
+	sleep 3
+	exit
+else
+	echo
+fi
+
 # Rename the old username to the new AD username
-echo "Rename their home folder to match the AD username"
+echo "Renaming their home folder to match the AD username"
 sudo mv "$old_user_hd" /Users/$new_user
 sleep 2
 echo "Done"
@@ -134,7 +182,9 @@ echo "Done"
 chown_check(){
 # Run command
 echo "Attempting to set ownership of their new home folder"
-echo "This may take a little while- $(tput setaf 2)Please, be patient$(tput sgr0)"
+echo "This may take a little while- "$GREEN"Please, be patient"$RESET
+echo "It may take so long that you'll have to enter administrative credentials again"
+echo "In the prompt of \"Password:\""
 sudo chown -R "$new_user":staff /Users/$new_user &>/dev/null
 # $? is the value of true or false of last command
 chown_is=$?
