@@ -17,7 +17,7 @@ BLUE=$(tput setaf 4)
 
 clear
 
-echo "AD migration assistant v1.5.4"
+echo "AD migration assistant v1.5.5"
 echo
 echo "This script was designed to assist in migrating a non-AD user"
 echo "to AD while keeping their Desktop background, files, and most"
@@ -42,6 +42,9 @@ read -n 1 -p $BLUE"Press any key to continue..."$RESET
 
 clear
 
+# Check what OS we're running
+Ver=$(sw_ver -productVersion)
+
 # Check that all names match
 name1=$(scutil --get HostName)
 name2=$(scutil --get ComputerName)
@@ -56,11 +59,16 @@ then
 	sleep 2
 else
 	echo "One of the HostNames does not match. Please verify that all names match"
-	echo "and un-bind and re-bind to Active Directory if necessary"
+	echo "and un-bind, rename, and re-bind to Active Directory"
 	echo "HostName is: "$RED$name1$RESET
 	echo "ComputerName is: "$RED$name2$RESET
 	echo "LocalHostName is: "$RED$name3$RESET
-	sleep 5
+	sleep 3
+	echo "The commands using ARD to set these names are:"
+	echo "scutil --set HostName \""$BLUE"[NAMEHERE]\""$RESET""
+	echo "scutil --set ComputerName \""$BLUE"[NAMEHERE]\""$RESET""
+	echo "scutil --set LocalHostName \""$BLUE"[NAMEHERE]\""$RESET""
+	sleep 3
 	exit
 fi
 
@@ -70,19 +78,22 @@ sudo networksetup -setairportpower en1 off
 sleep 3
 echo "Done"
 
-
-# Check if the machine is bound to AD
-echo "Checking what domain the machine is bound to for Active Directory"
-
-ADTEST=$(dsconfigad -show | awk '/Active Directory Domain/ {print $5}')
-if [ $ADTEST = "alpine.local" ]
+if [ "$Ver" != "10.6.8" ];
 then
-    echo "You are bound to "$GREEN"alpine.local"$RESET". Moving on."
-else
-    echo "You are "$RED"NOT"$RESET" bound to "$GREEN"alpine.local"$RESET
-    echo "Please bind the machine before running this script."
-    sudo networksetup setairportpower en1 on
-    exit
+	
+	# Check if the machine is bound to AD
+	echo "Checking what domain the machine is bound to for Active Directory"
+
+	ADTEST=$(dsconfigad -show | awk '/Active Directory Domain/ {print $5}')
+	if [ $ADTEST = "alpine.local" ]
+	then
+    	echo "You are bound to "$GREEN"alpine.local"$RESET". Moving on."
+	else
+    	echo "You are "$RED"NOT"$RESET" bound to "$GREEN"alpine.local"$RESET
+	    echo "Please bind the machine before running this script."
+	    sudo networksetup setairportpower en1 on
+    	exit
+	fi
 fi
 
 # Check that one of three DC's are reachable
@@ -111,6 +122,11 @@ then
         sudo networksetup -setairportpower en1 on
         exit
 fi
+
+# Set some settings for the AD bind are correct
+echo "Setting some AD bind settings"
+sudo dsconfigad -useuncpath disable
+sudo dsconfigad -mobileconfirm disable
 
 # Find out who's running the script
 i_am=$(whoami)
@@ -157,16 +173,51 @@ read new_user
 if [[ "$old_user" = "$new_user" ]];
 then
 	echo
-	echo
 	echo $RED$old_user$RESET" is the same as the AD username you are migrating already."
-	echo "This app is not needed."
 	# Pause to continue
 	read -n 1 -p $BLUE"Press any key to continue..."$RESET
+	
+	echo $new_user
+	
+	# Remove the user using dscl
+	echo "Removing old user from local directory ONLY"
+	sudo dscl . -delete /Users/${old_user%/}
+	sleep 2
+	echo "Done"
+	
+	echo "Attempting to set ownership of their home folder appropriately"
+	echo "This may take a little while- "$GREEN"Please, be patient"$RESET
+	echo "It may take so long that you'll have to enter administrative credentials again"
+	echo "In the prompt of \"Password:\""
+	sudo chown -R $new_user:staff /Users/$new_user
+	
+	# Remove Keychain items - doesn't hurt if nothing is there
+	echo "Removing Keychain items"
+	sudo rm -rf /Users/$new_user/Library/Keychains/*
+	sudo rm -rf /Users/$new_user/Library/Keychains/.fl*
+	sleep 2
+	echo "Done"
+
+	# Remove dropbox file - doesn't hurt if nothing is there
+	echo "Removing Dropbox associated file"
+	sudo rm -rf /Users/$new_user/.dropbox
+	sleep 2
+	echo "Done"
+
+	# Adding new_user to admin group
+	echo "Adding user to admin goup"
+	sudo dscl . -append /Groups/admin GroupMembership $new_user
+	sleep 2
+	echo "Done"
+	
 	# Turn wireless back on
 	echo "Turning wireless back on"
 	sudo networksetup -setairportpower en1 on
-	echo "Exiting"
-	sleep 3
+	
+	# Finished
+	echo "User migrated!"
+	rm -rf /Users/Shared/ad_migrate.command
+	
 	exit
 else
 	echo
@@ -185,7 +236,7 @@ echo "Attempting to set ownership of their new home folder"
 echo "This may take a little while- "$GREEN"Please, be patient"$RESET
 echo "It may take so long that you'll have to enter administrative credentials again"
 echo "In the prompt of \"Password:\""
-sudo chown -R "$new_user":staff /Users/$new_user &>/dev/null
+sudo chown -R $new_user:staff /Users/$new_user &>/dev/null
 # $? is the value of true or false of last command
 chown_is=$?
 return $chown_is
@@ -200,7 +251,7 @@ then
 	# Re-rename old_user_hd back to original
 	echo "Moving user's home directory back"
 	echo "Re-setting permissions for this folder back"
-	sudo mv /Users/"$new_user" "$old_user_hd"
+	sudo mv /Users/$new_user "$old_user_hd"
 	sudo chown -R $old_user:staff "$old_user_hd"
 	sudo chflags -R nouchg "$old_user_hd"
 	# Turn wireless back on

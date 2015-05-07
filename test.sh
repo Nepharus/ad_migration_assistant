@@ -1,25 +1,21 @@
 #!/bin/bash
-IPs=( "ad1.alpine.local" "ad2.alpine.local" "ad3.alpine.local" )
-# Value to return false
-found_one=1
 
-# Function for checking for servers
-check_servers(){
-for ip in ${IPs[*]};
-do
-# If ping returns true, change found_one to true
-	if ping -c 2 -q $ip &> /dev/null
-	then
-		found_one=0
-	fi
-done 
-return $found_one
-}
+# Color variables
+GREEN=$(tput setaf 2)
+RED=$(tput setaf 1)
+RESET=$(tput sgr0)
+PINK=$(tput setaf 5)
+BLUE=$(tput setaf 4)
 
-# Check the function is not true
-if ! check_servers;
+# Find out what version OS we're dealing with
+#Ver=$(sw_vers -productVersion)
+#echo $Ver
+
+Ver="10.9.5"
+
+if [ $Ver != "10.6.8" ];
 then
-	echo "None of the DC's are available. Wire the machine on a school network."
-	sudo networksetup -setairportpower en1 on
-	exit
+	echo "Not 10.6.8"
+else
+	echo "10.6.8"
 fi
