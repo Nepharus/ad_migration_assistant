@@ -45,10 +45,6 @@ clear
 # Check what OS we're running - removed because complications with 10.6.8
 #Ver=$(sw_ver -productVersion)
 
-# What is the primary adapter?
-mainInt=$(networksetup -listnetworkserviceorder | awk -F'\\) ' '/\(1\)/ {print $2}')
-    networksetup -setdnsservers "$mainInt" alpinedistrict.org alpine.local
-
 ############################
 #
 #user_is_mobile="$(dscl . -list /Users OriginalNodeName | grep -c $old_user)"
@@ -79,8 +75,8 @@ mainInt=$(networksetup -listnetworkserviceorder | awk -F'\\) ' '/\(1\)/ {print $
 #name1=$(scutil --get HostName)
 name2=$(scutil --get ComputerName)
 name3=$(scutil --get LocalHostName)
-echo "Checking that HostName, ComputerName, and LocalHostName all match"
-if [ "$name1" == "$name3" ]
+echo "Checking that ComputerName, and LocalHostName all match"
+if [ "$name2" == "$name3" ]
 then
 	echo "Everything is as it should be! :-)"
 #	echo "HostName is: "$GREEN$name1$RESET
@@ -108,6 +104,9 @@ sudo networksetup -setairportpower en1 off
 sleep 3
 echo "Done"
 
+# What is the primary adapter?
+#mainInt=$(networksetup -listnetworkserviceorder | awk -F'\\) ' '/\(1\)/ {print $2}')
+#networksetup -setdnsservers "$mainInt" alpinedistrict.org alpine.local
 
 # Check if the machine is bound to AD
 echo "Checking what domain the machine is bound to for Active Directory"
@@ -219,18 +218,18 @@ then
 	echo "This may take a little while- "$GREEN"Please, be patient"$RESET
 	echo "It may take so long that you'll have to enter administrative credentials again"
 	echo "In the prompt of \"Password:\""
-	sudo chown -R $new_user:staff /Users/$new_user
+	sudo chown -R "$new_user":staff /Users/$new_user
 	
 	# Remove Keychain items - doesn't hurt if nothing is there
 	echo "Removing Keychain items"
-	sudo rm -rf /Users/$new_user/Library/Keychains/*
-	sudo rm -rf /Users/$new_user/Library/Keychains/.fl*
+	sudo rm -rf /Users/"$new_user"/Library/Keychains/*
+	sudo rm -rf /Users/"$new_user"/Library/Keychains/.fl*
 	sleep 2
 	echo "Done"
 
 	# Remove dropbox file - doesn't hurt if nothing is there
 	echo "Removing Dropbox associated file"
-	sudo rm -rf /Users/$new_user/.dropbox
+	sudo rm -rf /Users/"$new_user"/.dropbox
 	sleep 2
 	echo "Done"
 
