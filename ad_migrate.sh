@@ -42,30 +42,60 @@ read -n 1 -p $BLUE"Press any key to continue..."$RESET
 
 clear
 
-# Check what OS we're running
-Ver=$(sw_ver -productVersion)
+# Check what OS we're running - removed because complications with 10.6.8
+#Ver=$(sw_ver -productVersion)
+
+# What is the primary adapter?
+mainInt=$(networksetup -listnetworkserviceorder | awk -F'\\) ' '/\(1\)/ {print $2}')
+    networksetup -setdnsservers "$mainInt" alpinedistrict.org alpine.local
+
+############################
+#
+#user_is_mobile="$(dscl . -list /Users OriginalNodeName | grep -c $old_user)"
+#old_user_Record="$(dscl . -read /Users/$old_user | grep -v 'AppleMeta' | awk '/RecordName/ {print $2}')"
+#old_user_Real="$(dscl . -read /Users/$old_user | grep -v 'dsAttrType' | awk '/RealName/ {print $2}')"
+#
+#if $user_is_mobile > 0;
+#then
+#	echo "The user is already an AD account. You do not need to run this program."
+#	echo "Turning wireless back on"
+#	sudo networksetup -setairportpower en1 on
+#	echo "Exiting"
+#	sleep 3
+#	exit
+#else
+#	echo "Renaming local user to fix migration issues."
+#	sudo dscl . change /Users/$old_user RecordName $old_user_Record $old_user"mac"
+#	sudo dscl . change /Users/$old_user RealName $old_user_Real $old_user"mac"
+#fi
+#
+#echo "Restoring the users local account name."
+#sudo dscl . change /Users/$old_user RecordName $old_user"mac" $old_user_Record
+#sudo dscl . change /Users/$old_user RealName $old_user"mac" $old_user_Real
+#
+############################
 
 # Check that all names match
-name1=$(scutil --get HostName)
+#name1=$(scutil --get HostName)
 name2=$(scutil --get ComputerName)
 name3=$(scutil --get LocalHostName)
 echo "Checking that HostName, ComputerName, and LocalHostName all match"
-if [[ "$name1" == "$name2" && "$name1" == "$name3" ]]
+if [ "$name1" == "$name3" ]
 then
 	echo "Everything is as it should be! :-)"
-	echo "HostName is: "$GREEN$name1$RESET
+#	echo "HostName is: "$GREEN$name1$RESET
 	echo "ComputerName is: "$GREEN$name2$RESET
 	echo "LocalHostName is: "$GREEN$name3$RESET
 	sleep 2
 else
 	echo "One of the HostNames does not match. Please verify that all names match"
 	echo "and un-bind, rename, and re-bind to Active Directory"
-	echo "HostName is: "$RED$name1$RESET
+#	echo "HostName is: "$RED$name1$RESET
 	echo "ComputerName is: "$RED$name2$RESET
 	echo "LocalHostName is: "$RED$name3$RESET
 	sleep 3
 	echo "The commands using ARD to set these names are:"
-	echo "scutil --set HostName \""$BLUE"[NAMEHERE]\""$RESET""
+#	echo "scutil --set HostName \""$BLUE"[NAMEHERE]\""$RESET""
 	echo "scutil --set ComputerName \""$BLUE"[NAMEHERE]\""$RESET""
 	echo "scutil --set LocalHostName \""$BLUE"[NAMEHERE]\""$RESET""
 	sleep 3
@@ -78,22 +108,19 @@ sudo networksetup -setairportpower en1 off
 sleep 3
 echo "Done"
 
-if [ "$Ver" != "10.6.8" ];
-then
-	
-	# Check if the machine is bound to AD
-	echo "Checking what domain the machine is bound to for Active Directory"
 
-	ADTEST=$(dsconfigad -show | awk '/Active Directory Domain/ {print $5}')
-	if [ $ADTEST = "alpine.local" ]
-	then
-    	echo "You are bound to "$GREEN"alpine.local"$RESET". Moving on."
-	else
-    	echo "You are "$RED"NOT"$RESET" bound to "$GREEN"alpine.local"$RESET
-	    echo "Please bind the machine before running this script."
-	    sudo networksetup setairportpower en1 on
-    	exit
-	fi
+# Check if the machine is bound to AD
+echo "Checking what domain the machine is bound to for Active Directory"
+
+ADTEST=$(sudo dsconfigad -show | awk '/Active Directory Domain/ {print $5}')
+if [ $ADTEST = "alpine.local" ]
+then
+   	echo "You are bound to "$GREEN"alpine.local"$RESET". Moving on."
+else
+   	echo "You are "$RED"NOT"$RESET" bound to "$GREEN"alpine.local"$RESET
+    echo "Please bind the machine before running this script."
+    sudo networksetup setairportpower en1 on
+   	exit
 fi
 
 # Check that one of three DC's are reachable
@@ -127,6 +154,9 @@ fi
 echo "Setting some AD bind settings"
 sudo dsconfigad -useuncpath disable
 sudo dsconfigad -mobileconfirm disable
+
+# Set DNS search domains for Ethernet
+sudo networksetup -setsearchdomains Ethernet alpine.local alpinedistrict.org
 
 # Find out who's running the script
 i_am=$(whoami)
@@ -236,7 +266,8 @@ echo "Attempting to set ownership of their new home folder"
 echo "This may take a little while- "$GREEN"Please, be patient"$RESET
 echo "It may take so long that you'll have to enter administrative credentials again"
 echo "In the prompt of \"Password:\""
-sudo chown -R $new_user:staff /Users/$new_user &>/dev/null
+sudo chflags -R nouchg "$old_user_hd"
+sudo chown -R "$new_user":staff /Users/$new_user &>/dev/null
 # $? is the value of true or false of last command
 chown_is=$?
 return $chown_is
@@ -251,7 +282,7 @@ then
 	# Re-rename old_user_hd back to original
 	echo "Moving user's home directory back"
 	echo "Re-setting permissions for this folder back"
-	sudo mv /Users/$new_user "$old_user_hd"
+	sudo mv /Users/"$new_user" "$old_user_hd"
 	sudo chown -R $old_user:staff "$old_user_hd"
 	sudo chflags -R nouchg "$old_user_hd"
 	# Turn wireless back on
@@ -269,14 +300,14 @@ echo "Done"
 
 # Remove Keychain items - doesn't hurt if nothing is there
 echo "Removing Keychain items"
-sudo rm -rf /Users/$new_user/Library/Keychains/*
-sudo rm -rf /Users/$new_user/Library/Keychains/.fl*
+sudo rm -rf /Users/"$new_user"/Library/Keychains/*
+sudo rm -rf /Users/"$new_user"/Library/Keychains/.fl*
 sleep 2
 echo "Done"
 
 # Remove dropbox file - doesn't hurt if nothing is there
 echo "Removing Dropbox associated file"
-sudo rm -rf /Users/$new_user/.dropbox
+sudo rm -rf /Users/"$new_user"/.dropbox
 sleep 2
 echo "Done"
 
