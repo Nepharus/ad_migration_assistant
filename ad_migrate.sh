@@ -17,7 +17,7 @@ BLUE=$(tput setaf 4)
 
 clear
 
-echo "AD migration assistant v1.5.5"
+echo "AD migration assistant v1.5.6"
 echo
 echo "This script was designed to assist in migrating a non-AD user"
 echo "to AD while keeping their Desktop background, files, and most"
