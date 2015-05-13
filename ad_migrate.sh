@@ -186,15 +186,19 @@ read new_user
 # Try getting the uid using dscl
 dscl_domain=$(dscl localhost -list . | grep Active)
 i="0"
+#echo $dscl_domain
 while true
 do	
-	dscl_domain_2=$(dscl localhost -list ./"$dscl_domain")
+	dscl_domain_2=$(dscl localhost -list "./$dscl_domain" 2>/dev/null)
 	if [ "$dscl_domain_2" != "list: Invalid Path" ];
 	then
 		dscl_domain=$dscl_domain"/"$dscl_domain_2
+	else
+		sleep 5
 	fi
-	i=$[i+1]
-	if [ $(dscl localhost -list ./"$dscl_domain" 2>/dev/null| grep -c "Users") == "1" ];
+	#echo $dscl_domain_2
+	#echo $dscl_domain
+	if [ $(dscl localhost -list "./$dscl_domain" 2>/dev/null| grep -c "Users") == "1" ];
 	then
 		break
 	fi
@@ -202,7 +206,11 @@ do
 	then
 		break
 	fi
+	i=$[i+1]
 done
+sleep 5
+#echo "after loop"
+#echo $dscl_domain
 new_user_uid=$(dscl "/$dscl_domain" -read /Users/$new_user UniqueID 2>/dev/null| awk '/UniqueID/ {print $2}')
 if [ -z $new_user_uid ];
 then
