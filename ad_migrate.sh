@@ -3,7 +3,7 @@
 ## on a mac to their AD user. For this to work, we are assuming that
 ## the machine is already properly named and bound to the AD domain
 ##
-## Created by James Nielsen
+## Created by James Nielsen, James Lewis, and Bryson Grygla
 ##
 
 #!/bin/bash
@@ -23,7 +23,7 @@ BLUE=$(tput setaf 4)
 
 clear
 
-echo "AD migration assistant v1.5.7"
+echo "AD migration assistant v2.0.0"
 echo
 echo "This script was designed to assist in migrating a non-AD user"
 echo "to AD while keeping their Desktop background, files, and most"
@@ -124,6 +124,7 @@ echo "Setting some AD bind settings"
 sudo dsconfigad -useuncpath disable
 sudo dsconfigad -mobile enable
 sudo dsconfigad -mobileconfirm disable
+sudo defaults write /Library/Preferences/com.apple.loginwindow SHOWFULLNAME -bool TRUE
 
 # Find out who's running the script
 i_am=$(whoami)
@@ -184,9 +185,9 @@ echo "Now please enter in the AD username of that user: "
 read new_user
 
 # Try getting the uid using dscl
+echo "Verifying that the user is in AD"
 dscl_domain=$(dscl localhost -list . | grep Active)
 i="0"
-#echo $dscl_domain
 while true
 do	
 	dscl_domain_2=$(dscl localhost -list "./$dscl_domain" 2>/dev/null)
@@ -196,8 +197,6 @@ do
 	else
 		sleep 5
 	fi
-	#echo $dscl_domain_2
-	#echo $dscl_domain
 	if [ $(dscl localhost -list "./$dscl_domain" 2>/dev/null| grep -c "Users") == "1" ];
 	then
 		break
@@ -209,8 +208,6 @@ do
 	i=$[i+1]
 done
 sleep 5
-#echo "after loop"
-#echo $dscl_domain
 new_user_uid=$(dscl "/$dscl_domain" -read /Users/$new_user UniqueID 2>/dev/null| awk '/UniqueID/ {print $2}')
 if [ -z $new_user_uid ];
 then
@@ -225,7 +222,7 @@ then
 fi
 
 # Show the AD UID
-echo $new_user_uid
+echo $new_user" was found in AD with UID: "$new_user_uid"."
 
 # Rename the old username to the new AD username
 echo "Renaming their home folder to match the AD username"
@@ -240,7 +237,6 @@ chown_check(){
 	echo "This may take a little while- "$GREEN"Please, be patient"$RESET
 	echo "It may take so long that you'll have to enter administrative credentials again"
 	echo "In the prompt of \"Password:\""
-	echo $new_user_uid
 	sudo chflags -R nouchg /Users/$new_user &>/dev/null
 	sudo chown -R $new_user_uid:staff /Users/$new_user &>/dev/null
 	# $? is the value of true or false of last command
