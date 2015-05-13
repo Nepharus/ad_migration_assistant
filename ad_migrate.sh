@@ -183,41 +183,34 @@ old_user_uid="$(id -u $old_user)"
 echo "Now please enter in the AD username of that user: "
 read new_user
 
-# Get AD UID
-new_user_uid="$(id -u $new_user@$domain)"
-
-# Check if the value for new_user_uid is null or not 
-# If value is blank try getting the uid using dscl
-if [ -z "new_user_uid" ];
-then
-	dscl_domain=$(dscl localhost -list . | grep Active)
-	i="0"
-	while [ $(dscl localhost -list ./"$dscl_domain" | grep -c "Users") != "1" ];
-	do	
-		dscl_domain=$dscl_domain"/"$(dscl localhost -list ./"$dscl_domain")
-		i=$[i+1]
-		if [ "$i" -gt "5" ];
-		then
-			break
-		fi
-	done
-	new_user_uid=$(dscl "/$dscl_domain" -read /Users/$new_user UniqueID 2>/dev/null| awk '/UniqueID/ {print $2}')
-	if [ -z $new_user_uid ];
+# Try getting the uid using dscl
+dscl_domain=$(dscl localhost -list . | grep Active)
+i="0"
+while [ $(dscl localhost -list ./"$dscl_domain" | grep -c "Users") != "1" ];
+do	
+	dscl_domain=$dscl_domain"/"$(dscl localhost -list ./"$dscl_domain")
+	i=$[i+1]
+	if [ "$i" -gt "5" ];
 	then
-		# If still null, then exit the script
-		echo "Unable to get the UID of: "$new_user". Make sure the user was typed"
-		echo "correctly and rerun this script."
-		echo "Turning wireless back on."
-		sudo networksetup -setairportpower en1 on
-		echo "Exiting"
-		sleep 3
-		exit
+		break
 	fi
-
+done
+new_user_uid=$(dscl "/$dscl_domain" -read /Users/$new_user UniqueID 2>/dev/null| awk '/UniqueID/ {print $2}')
+echo $new_user_uid
+if [ -z $new_user_uid ];
+then
+	# If null, then exit the script
+	echo "Unable to get the UID of: "$new_user". Make sure the user was typed"
+	echo "correctly and rerun this script."
+	echo "Turning wireless back on."
+	sudo networksetup -setairportpower en1 on
+	echo "Exiting"
+	sleep 3
+	exit
 fi
 
 # Show the AD UID
-#echo $new_user_uid
+echo $new_user_uid
 
 # Rename the old username to the new AD username
 echo "Renaming their home folder to match the AD username"
@@ -232,6 +225,7 @@ chown_check(){
 	echo "This may take a little while- "$GREEN"Please, be patient"$RESET
 	echo "It may take so long that you'll have to enter administrative credentials again"
 	echo "In the prompt of \"Password:\""
+	echo $new_user_uid
 	sudo chflags -R nouchg /Users/$new_user &>/dev/null
 	sudo chown -R $new_user_uid:staff /Users/$new_user &>/dev/null
 	# $? is the value of true or false of last command
