@@ -68,6 +68,7 @@ else
 	echo "scutil --set ComputerName \""$BLUE"[NAMEHERE]\""$RESET""
 	echo "scutil --set LocalHostName \""$BLUE"[NAMEHERE]\""$RESET""
 	sleep 3
+	rm -rf /Users/Shared/ad_migrate.*
 	exit
 fi
 
@@ -88,6 +89,7 @@ else
    	echo "You are "$RED"NOT"$RESET" bound to "$GREEN$domain$RESET
     echo "Please bind the machine before running this script."
     sudo networksetup setairportpower en1 on
+    rm -rf /Users/Shared/ad_migrate.*
    	exit
 fi
 
@@ -112,6 +114,7 @@ if ! check_servers;
 then
         echo "None of the DC's are available. Wire the machine on the network."
         sudo networksetup -setairportpower en1 on
+        rm -rf /Users/Shared/ad_migrate.*
         exit
 fi
 
@@ -156,6 +159,7 @@ then
 	sudo networksetup -setairportpower en1 on
 	echo "Exiting"
 	sleep 3
+	rm -rf /Users/Shared/ad_migrate.*
 	exit
 fi
 
@@ -212,17 +216,18 @@ new_user_uid=$(dscl "/$dscl_domain" -read /Users/$new_user UniqueID 2>/dev/null|
 if [ -z $new_user_uid ];
 then
 	# If null, then exit the script
-	echo "Unable to get the UID of: "$new_user". Make sure the user was typed"
+	echo "Unable to get the UID of: "$RED$new_user$RESET". Make sure the user was typed"
 	echo "correctly and rerun this script."
 	echo "Turning wireless back on."
 	sudo networksetup -setairportpower en1 on
 	echo "Exiting"
+	rm -rf /Users/Shared/ad_migrate.*
 	sleep 3
 	exit
 fi
 
 # Show the AD UID
-echo $new_user" was found in AD with UID: "$new_user_uid"."
+echo $GREEN$new_user$RESET" was found in AD with UID: "$GREEN$new_user_uid$RESET"."
 
 # Rename the old username to the new AD username
 echo "Renaming their home folder to match the AD username"
@@ -258,6 +263,7 @@ then
 	# Turn wireless back on
 	sudo networksetup -setairportpower en1 on
 	echo "Exiting"
+	rm -rf /Users/Shared/ad_migrate.*
 	exit
 fi
 
