@@ -201,7 +201,7 @@ do
 	else
 		sleep 5
 	fi
-	if [ $(dscl localhost -list "./$dscl_domain" 2>/dev/null| grep -c "Users") == "1" ];
+	if [ $(dscl localhost -list "./$dscl_domain" 2>/dev/null| grep -c "Users") != "0" ];
 	then
 		break
 	fi
